@@ -25,17 +25,23 @@ def main():
     #     Favorite(id)
     #     AddFriend(user)
 
+    TL = LerTL(30)
+    for post in TL:
+        id = post.id_str
+        user = post.user.id_str
+        print(post)
+        print(id)
+        if user == MyID or '1164179019849502720' or '975853681831706624':
+            continue
+        else:
+            Favorite(id)
+            AddFriend(user)
+            time.sleep(10)
+
     GetTrends()
 
-    # TL = LerTL(100)
-    # for post in TL:
-    #     id = post.id
-    #     user = post.user.id
-    #     if str(user) != MyID:
-    #         Favorite(id)
-    #         AddFriend(user)
 
-    #Everything()
+    Unfollow()
 
 
 
@@ -54,6 +60,14 @@ def Favorite(id):
         api.create_favorite(id)
     except:
         pass
+
+def Unfollow():
+    list = api.friends_ids()
+    for friend in list:
+        if friend == '1164179019849502720' or '975853681831706624':
+            print(friend)
+        else:
+            api.destroy_friendship(friend)
 
 def LerTL(quantidade):
     public_tweets = api.home_timeline(quantidade)
@@ -90,7 +104,6 @@ def Download(url):
         return filename
     except:
         return 'None'
-        pass
 
 def ShortURL(url):
     s = pyshorteners.Shortener()
@@ -99,23 +112,46 @@ def ShortURL(url):
 def MontaTxt(article,Tag):
     if (Tag == None):
         Tag = 'None'
-    print(article['title'])
-    print(Tag)
-    titulo, descricao, url, fonte = article['title'], article['description'], article['url'], article['source']['name']
-    url = ShortURL(url)
-    if (fonte == 'None'):
-        fonte = ''
+    print(article)
+    titulo, descricao, url, fonte, author = article['title'], article['description'], article['url'], article['source']['name'], article['author']
+    url_short = ShortURL(url)
+
 
     if (Tag == 'None'):
-        TS = len(descricao) + len(titulo) + len(url) + 9
-        if(TS <= 262):
-            return titulo + '\n' + descricao + '\n\nFonte: ' + fonte + '\nVeja em: ' + url
+        TD = len(titulo) + len(descricao) + len(url) + len(author)                   #22 são os caracteres fixos
+        TDs = len(titulo) + len(descricao) + len(url)
+        SPa = len(titulo) + len(descricao) + len(url_short) + len(author)
+
+        # 280 - 22
+        if (TD <= 258):
+            return titulo + '.\n\n' + descricao + '\n\nAutor: ' + author + '\nVeja em: ' + url
+        #280 - 14
+        elif (TDs <= 266):
+            return titulo + '.\n\n' + descricao + '\n\nVeja em: ' + url
+        #280 - 22
+        elif (SPa <= 258):
+            return titulo + '.\n\n' + descricao + '\n\nAutor: ' + author + '\nVeja em: ' + url_short
         else:
-            return titulo + '\n\nFonte: ' + fonte + '\nVeja em: ' + url
+            return titulo + '.\n\n' + descricao + '\nVeja em: ' + url_short
+
     else:
-        TS = len(descricao) + len(titulo) + len(url) + 9 + len(Tag)
-        if (TS <= (260 - len(Tag))):
-            return titulo + '\n' + descricao + '\n' + '#' + Tag + '\n\nFonte: ' + fonte + '\nVeja em: ' + url
+        TG = len(titulo) + len(descricao) + len(Tag) + len(url) + len(author)  # 22 são os caracteres fixos
+        TGs = len(titulo) + len(descricao) + len(Tag) + len(url)
+        SPa = len(titulo) + len(descricao) + len(Tag) + len(url_short) + len(author)
+        # 280 - 24
+        if (TG <= 256):
+            return titulo + '.\n\n' + descricao + '\n\n' + Tag + '\n\nAutor: ' + author + '\nVeja em: ' + url
+        # 280 - 15
+        elif (TGs <= 265):
+            return titulo + '.\n\n' + descricao + '\n\n' + Tag + '\nVeja em: ' + url
+        # 280 - 24
+        elif (SPa <= 256):
+            return titulo + '.\n\n' + descricao + '\n\n' + Tag + '\n\nAutor: ' + author + '\nVeja em: ' + url_short
+        # elif MontaTxt(article,Tag='None') < 280:
+        #         return MontaTxt(article,Tag='None')
+        else:
+            return titulo + '.\n\n' + descricao + '\n\n' + Tag + '\nVeja em: ' + url_short
+
 
 def Top():
     try:
@@ -132,7 +168,7 @@ def Top():
 
 def Everything(query):
     try:
-        Everything = newsapi.get_everything(language='pt', sort_by='relevancy', q=query)
+        Everything = newsapi.get_everything(language='pt', sort_by='popularity', q=query)
         for article in Everything['articles']:
             text = MontaTxt(article)
             Image = Download(article['urlToImage'])
@@ -154,32 +190,55 @@ def GetTrends():
 
     for trend in trends:
         try:
-            if (trend['tweet_volume'] > 1 ):
-                Everything = newsapi.get_everything(language='pt', sort_by='relevancy', q=trend['name'])
+            print(trend)
+            if (trend['tweet_volume'] > 10000 ):
+                Everything = newsapi.get_everything(sort_by='relevancy', q=trend['name'])
                 print(Everything)
-                print(Everything['articles'])
-                article = Everything['articles'][0]
-                print('Passou')
+                time.sleep(1)
+                count = 0
+                article = Everything['articles'][count]
+
+                # if article['source']['name'] in 'Papelpop.com' or 'Publico.pt':
+                #     article = Everything['articles'][++count]
+                #     print("Papelpop ou pt" + article)
+
                 Image = Download(article['urlToImage'])
 
                 if '#' in str(trend['name']):
-                    text = MontaTxt(article, trend['name'])
-                    print('Com trend: ' + text)
+                    text = MontaTxt(article, Tag=trend['name'])
+                    print('Com #: ' + text)
                 else:
                     text = MontaTxt(article, Tag='None')
-                    print('Sem trend: ' + text)
+                    print('Sem #: ' + text)
 
                 if (Image != "None"):
-                    api.update_with_media(Image, text)
-                #else:
-                   #Tweet(text)
+                    f = open("tweets.txt", "r")
+                    r = f.read()
+                    if not article['title'] in r:
+                        Tweet(text)
+                        #api.update_with_media(Image, text)
+                        f.close()
+                        f = open("tweets.txt", "a")
+                        f.write(article['title'])
+                        f.close()
+                    else:
+                        pass
+                else:
+                    f = open("tweets.txt", "r")
+                    r = f.read()
+                    if not article['title'] in r:
+                        Tweet(text)
+                        f.close()
+                    else:
+                        pass
 
                 print('Twettou!')
-                #os.remove(r'Images/'+Image)
-            else:
-                print("nao")
+                time.sleep(1800)
+                os.remove('C:\\Users\\joaop\\PycharmProjects\\Twitter Bot\\Images\\' + Image)
+
         except:
             pass
+        time.sleep(8)
 
 
 if __name__ == '__main__':
